@@ -1,0 +1,28 @@
+[package]
+name = "pdv-tauri"
+version = "0.1.0"
+description = "PDV Desktop Application"
+authors = ["PDV Team"]
+license = ""
+repository = ""
+edition = "2021"
+[lib]
+name = "pdv_tauri"
+path = "src/lib.rs"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+tauri = { version = "1.5", features = [ "dialog-message", "dialog-save", "dialog-open", "fs-write-file", "fs-read-file", "fs-create-dir", "path-all", "shell-open"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rusqlite = { version = "0.31", features = ["bundled", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+

@@ -1,0 +1,6 @@
+[build]
+# Ensure build script runs before analysis
+rustflags = []
+
+
+

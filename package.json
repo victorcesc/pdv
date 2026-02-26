@@ -1,0 +1,30 @@
+{
+  "name": "pdv-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PDV System - Monorepo with Desktop (Tauri) and Cloud API",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:api & npm run dev:desktop",
+    "dev:api": "npm run dev --workspace=@pdv/api",
+    "dev:desktop": "npm run dev --workspace=@pdv/desktop",
+    "dev:desktop:tauri": "npm run tauri:dev --workspace=@pdv/desktop",
+    "build": "npm run build:api && npm run build:desktop",
+    "build:api": "npm run build --workspace=@pdv/api",
+    "build:desktop": "npm run build --workspace=@pdv/desktop",
+    "build:desktop:tauri": "npm run tauri:build --workspace=@pdv/desktop",
+    "install:all": "npm install",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=9"
+  }
+}
+
