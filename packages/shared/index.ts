@@ -1,19 +1,21 @@
 // Tipos compartilhados entre desktop e API
 export interface User {
     id: number;
-    email: string;
+    login: string;
+    email?: string | null;
     name: string;
   }
   
   export interface RegisterCredentials {
-    email: string;
+    login: string;
+    email?: string;
     password: string;
     name: string;
     registrationKey: string;
   }
   
   export interface LoginCredentials {
-    email: string;
+    login: string;
     password: string;
   }
   

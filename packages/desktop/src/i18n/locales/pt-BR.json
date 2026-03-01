@@ -35,6 +35,7 @@
   },
   "home": {
     "title": "Bem-vindo ao PDV",
+    "welcome": "Bem vindo",
     "subtitle": "Sistema de vendas",
     "newSale": "Nova Venda",
     "products": "Produtos",
@@ -171,7 +172,10 @@
     "passwordTooShort": "A senha deve ter pelo menos 6 caracteres",
     "submit": "Criar Conta",
     "loading": "Criando conta...",
-    "alreadyHaveAccount": "Já tem uma conta? Faça login"
+    "alreadyHaveAccount": "Já tem uma conta? Faça login",
+    "successTitle": "Conta criada com sucesso!",
+    "successMessage": "Sua conta foi criada com sucesso. Você já pode fazer login e começar a usar o sistema.",
+    "successButton": "Entendi, obrigado!"
   }
 }
 

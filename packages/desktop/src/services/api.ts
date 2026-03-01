@@ -140,3 +140,7 @@ export async function updateInvoiceStatus(
 ): Promise<number> {
   return invoke<number>("update_invoice_status", { id, status });
 }
+
+export async function getPendingInvoices(): Promise<Invoice[]> {
+  return invoke<Invoice[]>("get_pending_invoices");
+}

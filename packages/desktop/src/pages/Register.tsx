@@ -2,16 +2,19 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { register } from "../services/auth";
 import { t } from "../i18n";
+import Modal from "../components/Modal";
 import "../styles/components.css";
 
 export default function Register() {
   const [name, setName] = useState("");
+  const [login, setLogin] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registrationKey, setRegistrationKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,6 +22,21 @@ export default function Register() {
     setError(null);
 
     // Validações
+    if (!login.trim()) {
+      setError(t("register.loginRequired") || "O login é obrigatório");
+      return;
+    }
+
+    if (login.length < 3) {
+      setError(t("register.loginTooShort") || "O login deve ter pelo menos 3 caracteres");
+      return;
+    }
+
+    if (/\s/.test(login)) {
+      setError(t("register.loginNoSpaces") || "O login não pode conter espaços");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError(t("register.passwordMismatch") || "As senhas não coincidem");
       return;
@@ -39,11 +57,13 @@ export default function Register() {
     try {
       await register({
         name,
-        email,
+        login,
+        email: email || undefined,
         password,
         registrationKey: registrationKey.trim(),
       });
-      navigate("/");
+      // Mostrar modal de sucesso ao invés de redirecionar imediatamente
+      setShowSuccessModal(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar conta");
     } finally {
@@ -84,18 +104,39 @@ export default function Register() {
 
           <div className="form-group">
             <label className="form-label">
-              {t("register.email") || "Email"}
+              {t("register.login") || "Login"} *
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              required
+              disabled={loading}
+              autoComplete="username"
+              placeholder="seu_login"
+            />
+            <small className="form-text-hint">
+              {t("register.loginHint") || "Usado para fazer login no sistema"}
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              {t("register.email") || "Email"} <span style={{ color: '#999', fontSize: '0.9em' }}>(opcional)</span>
             </label>
             <input
               type="email"
               className="form-control"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               disabled={loading}
               autoComplete="email"
               placeholder="seu@email.com"
             />
+            <small className="form-text-hint">
+              {t("register.emailHint") || "Apenas para contato (opcional)"}
+            </small>
           </div>
 
           <div className="form-group">
@@ -165,6 +206,19 @@ export default function Register() {
           </div>
         </form>
       </div>
+
+      {/* Modal de confirmação de registro */}
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate("/");
+        }}
+        title={t("register.successTitle") || "Conta criada com sucesso!"}
+        message={t("register.successMessage") || "Sua conta foi criada com sucesso. Você já pode fazer login e começar a usar o sistema."}
+        confirmText={t("register.successButton") || "Entendi, obrigado!"}
+        showCloseButton={false}
+      />
     </div>
   );
 }

@@ -98,13 +98,11 @@ export default function Sales() {
         const completeSale = await getSale(saleId);
         
         // Sincroniza com a API cloud (não-bloqueante)
-        // Apenas sincroniza se não for venda fiado e se deve gerar nota fiscal
-        if (!completeSale.is_credit && completeSale.generate_invoice) {
-          syncSale(completeSale).catch((syncError) => {
-            console.error("[SYNC] Erro ao sincronizar venda:", syncError);
-            // Não mostra erro ao usuário para não interromper o fluxo
-          });
-        }
+        // Sempre sincroniza quando finalizar uma venda
+        syncSale(completeSale).catch((syncError) => {
+          console.error("[SYNC] Erro ao sincronizar venda:", syncError);
+          // Não mostra erro ao usuário para não interromper o fluxo
+        });
       } catch (syncError) {
         console.error("[SYNC] Erro ao buscar venda para sincronização:", syncError);
         // Continua normalmente mesmo se a sincronização falhar

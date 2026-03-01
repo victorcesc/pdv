@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { login as authLogin, logout as authLogout, getCurrentUser, isAuthenticated, type User, type LoginCredentials } from "../services/auth";
+import { syncInitialData } from "../services/sync";
+import { invoke } from "@tauri-apps/api/tauri";
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +37,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     const response = await authLogin(credentials);
+    
+    // SEMPRE limpar dados locais no login para garantir isolamento entre usuários
+    // O banco local funciona como cache offline do usuário logado
+    // O servidor é a fonte de verdade e filtra por empresaId
+    console.log("[AUTH] Limpando dados locais para garantir isolamento do usuário...");
+      try {
+        await invoke("clear_local_data");
+        console.log("[AUTH] ✅ Dados locais limpos");
+      } catch (error) {
+        console.error("[AUTH] ⚠️ Erro ao limpar dados locais:", error);
+        // Continuar mesmo se houver erro
+    }
+    
     setUser(response.user);
+    
+    // Sincronizar dados após login bem-sucedido (não-bloqueante)
+    // Baixa apenas os dados do usuário logado do servidor
+    console.log("[AUTH] Login bem-sucedido, iniciando sincronização em background...");
+    syncInitialData()
+      .then(() => {
+        console.log("[AUTH] ✅ Sincronização concluída");
+      })
+      .catch((error) => {
+        console.error("[AUTH] ⚠️ Erro na sincronização (não bloqueia login):", error);
+        // Não bloqueia o login se a sincronização falhar
+        // O usuário pode continuar trabalhando offline
+      });
   };
 
   const logout = async () => {

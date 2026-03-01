@@ -32,5 +32,23 @@ impl InvoiceService {
 
         Ok(InvoiceRepository::update_status(conn, id, status)?)
     }
+
+    pub fn update_invoice_data(
+        conn: &Connection,
+        id: i64,
+        invoice_number: Option<&str>,
+        access_key: Option<&str>,
+        xml_content: Option<&str>,
+        status: &str,
+    ) -> Result<usize> {
+        let valid_statuses = vec!["pending", "issued", "cancelled", "error"];
+        if !valid_statuses.contains(&status) {
+            return Err(anyhow::anyhow!("Invalid invoice status: {}", status));
+        }
+
+        Ok(InvoiceRepository::update_invoice_data(
+            conn, id, invoice_number, access_key, xml_content, status
+        )?)
+    }
 }
 

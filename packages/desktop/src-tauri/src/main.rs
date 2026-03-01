@@ -48,9 +48,13 @@ fn main() {
             get_invoice,
             get_invoice_by_access_key,
             update_invoice_status,
+            get_pending_invoices,
+            update_invoice_data,
             // Sync commands
             prepare_sale_for_sync,
             get_pending_syncs,
+            sync_initial_data,
+            clear_local_data,
             // Printer commands
             print_sale_receipt,
             print_credit_receipt,

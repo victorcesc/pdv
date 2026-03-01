@@ -26,9 +26,24 @@ export default function CreditSales() {
   const [saleItems, setSaleItems] = useState<Array<SaleItem & { product?: Product }>>([]);
   const [loadingItems, setLoadingItems] = useState<boolean>(false);
 
+  // Carregar vendas quando selectedCustomer mudar
   useEffect(() => {
     loadSales();
   }, [selectedCustomer]);
+
+  // Escutar evento de sincronização concluída para recarregar dados
+  useEffect(() => {
+    const handleSyncCompleted = () => {
+      console.log("[CREDIT_SALES] Sincronização concluída, recarregando vendas...");
+      loadSales();
+    };
+    
+    window.addEventListener("syncCompleted", handleSyncCompleted);
+    
+    return () => {
+      window.removeEventListener("syncCompleted", handleSyncCompleted);
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedSale?.id) {

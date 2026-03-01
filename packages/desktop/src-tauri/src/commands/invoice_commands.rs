@@ -36,3 +36,28 @@ pub fn update_invoice_status(id: i64, status: String) -> Result<usize, String> {
     InvoiceService::update_status(&conn, id, &status).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn get_pending_invoices() -> Result<Vec<Invoice>, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    InvoiceRepository::find_pending(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn update_invoice_data(
+    id: i64,
+    invoice_number: Option<String>,
+    access_key: Option<String>,
+    xml_content: Option<String>,
+    status: String,
+) -> Result<usize, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    InvoiceService::update_invoice_data(
+        &conn,
+        id,
+        invoice_number.as_deref(),
+        access_key.as_deref(),
+        xml_content.as_deref(),
+        &status,
+    ).map_err(|e| e.to_string())
+}
+

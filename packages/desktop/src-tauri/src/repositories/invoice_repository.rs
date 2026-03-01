@@ -136,5 +136,47 @@ impl InvoiceRepository {
             params![status, id],
         )
     }
+
+    pub fn update_invoice_data(conn: &Connection, id: i64, invoice_number: Option<&str>, access_key: Option<&str>, xml_content: Option<&str>, status: &str) -> Result<usize> {
+        conn.execute(
+            "UPDATE invoices SET invoice_number = ?1, access_key = ?2, xml_content = ?3, status = ?4 WHERE id = ?5",
+            params![invoice_number, access_key, xml_content, status, id],
+        )
+    }
+
+    pub fn find_pending(conn: &Connection) -> Result<Vec<Invoice>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, sale_id, invoice_number, access_key, issue_date, status, xml_content, 
+             created_at, updated_at FROM invoices WHERE status = 'pending' ORDER BY created_at ASC"
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(Invoice {
+                id: Some(row.get(0)?),
+                sale_id: row.get(1)?,
+                invoice_number: row.get(2)?,
+                access_key: row.get(3)?,
+                issue_date: parse_datetime(row.get::<_, String>(4)?)
+                    .unwrap_or_else(Utc::now),
+                status: row.get(5)?,
+                xml_content: row.get(6)?,
+                created_at: row.get::<_, Option<String>>(7)?
+                    .and_then(parse_datetime),
+                updated_at: row.get::<_, Option<String>>(8)?
+                    .and_then(parse_datetime),
+                items: None,
+            })
+        })?;
+        
+        let mut invoices = Vec::new();
+        for row in rows {
+            let mut invoice = row?;
+            if let Some(id) = invoice.id {
+                let items = Self::find_items_by_invoice_id(conn, id)?;
+                invoice.items = Some(items);
+            }
+            invoices.push(invoice);
+        }
+        Ok(invoices)
+    }
 }
 

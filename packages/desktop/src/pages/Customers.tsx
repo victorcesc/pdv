@@ -4,7 +4,9 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  getCustomer,
 } from "../services/api";
+import { syncCustomer } from "../services/sync";
 import type { Customer, CustomerFormData } from "../types";
 import {
   validateDocument,
@@ -36,6 +38,18 @@ export default function Customers() {
 
   useEffect(() => {
     loadCustomers();
+    
+    // Escutar evento de sincronização concluída para recarregar dados
+    const handleSyncCompleted = () => {
+      console.log("[CUSTOMERS] Sincronização concluída, recarregando clientes...");
+      loadCustomers();
+    };
+    
+    window.addEventListener("syncCompleted", handleSyncCompleted);
+    
+    return () => {
+      window.removeEventListener("syncCompleted", handleSyncCompleted);
+    };
   }, []);
 
   const loadCustomers = async (): Promise<void> => {
@@ -98,6 +112,14 @@ export default function Customers() {
           active: editing.active ?? true,
         };
         await updateCustomer(customerData);
+        // Sincronizar atualização com o servidor
+        try {
+          const updatedCustomer = await getCustomer(editing.id);
+          await syncCustomer(updatedCustomer);
+        } catch (syncError) {
+          console.error("[CUSTOMERS] Erro ao sincronizar cliente atualizado:", syncError);
+          // Não bloqueia a atualização se a sincronização falhar
+        }
       } else {
         console.log("[FRONTEND] Creating customer:", formData);
         const customerData: Customer = {
@@ -105,8 +127,20 @@ export default function Customers() {
           active: true,
         };
         console.log("[FRONTEND] Customer data to send:", customerData);
-        const result = await createCustomer(customerData);
-        console.log("[FRONTEND] Customer created, result:", result);
+        const customerId = await createCustomer(customerData);
+        console.log("[FRONTEND] Customer created, result:", customerId);
+        
+        // Sincronizar cliente criado com o servidor (não-bloqueante)
+        try {
+          const createdCustomer = await getCustomer(customerId);
+          syncCustomer(createdCustomer).catch((syncError) => {
+            console.error("[CUSTOMERS] Erro ao sincronizar cliente:", syncError);
+            // Não mostra erro ao usuário para não interromper o fluxo
+          });
+        } catch (syncError) {
+          console.error("[CUSTOMERS] Erro ao buscar cliente para sincronização:", syncError);
+          // Continua normalmente mesmo se a sincronização falhar
+        }
       }
       setFormData({
         name: "",

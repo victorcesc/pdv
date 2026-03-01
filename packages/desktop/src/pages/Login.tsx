@@ -5,11 +5,11 @@ import { t } from "../i18n";
 import "../styles/components.css";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login: loginFn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,7 +18,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login({ email, password });
+      await loginFn({ login, password });
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao fazer login");
@@ -44,17 +44,17 @@ export default function Login() {
 
           <div className="form-group">
             <label className="form-label">
-              {t("login.email") || "Email"}
+              {t("login.login") || "Login"}
             </label>
             <input
-              type="email"
+              type="text"
               className="form-control"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
               required
               disabled={loading}
-              autoComplete="email"
-              placeholder="seu@email.com"
+              autoComplete="username"
+              placeholder="seu_login"
             />
           </div>
 

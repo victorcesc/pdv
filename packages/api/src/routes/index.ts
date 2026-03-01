@@ -8,6 +8,7 @@ export function createRouter(): Router {
   const router = Router();
   router.use("/health", healthRouter);
   router.use("/notas", notasRouter);
+  router.use("/invoices", notasRouter); // Alias para /invoices também
   router.use("/sync", syncRouter);
   router.use("/auth", authRouter);
   return router;

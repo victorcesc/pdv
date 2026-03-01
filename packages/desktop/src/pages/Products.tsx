@@ -6,7 +6,9 @@ import {
   deleteProduct,
   listDeletedProducts,
   reactivateProduct,
+  getProduct,
 } from "../services/api";
+import { syncProduct } from "../services/sync";
 import type { Product, ProductFormData } from "../types";
 import { t } from "../i18n";
 import "../styles/components.css";
@@ -31,9 +33,21 @@ export default function Products() {
 
 
   useEffect(() => {
-    console.log('TESTE');
     loadProducts();
     loadDeletedProducts();
+    
+    // Escutar evento de sincronização concluída para recarregar dados
+    const handleSyncCompleted = () => {
+      console.log("[PRODUCTS] Sincronização concluída, recarregando produtos...");
+      loadProducts();
+      loadDeletedProducts();
+    };
+    
+    window.addEventListener("syncCompleted", handleSyncCompleted);
+    
+    return () => {
+      window.removeEventListener("syncCompleted", handleSyncCompleted);
+    };
   }, []);
 
   const loadProducts = async (): Promise<void> => {
@@ -104,14 +118,37 @@ export default function Products() {
           active: editing.active ?? true,
         };
         await updateProduct(productData);
+        // Sincronizar atualização com o servidor
+        try {
+          const updatedProduct = await getProduct(editing.id);
+          await syncProduct(updatedProduct);
+        } catch (syncError) {
+          console.error("[PRODUCTS] Erro ao sincronizar produto atualizado:", syncError);
+          // Não bloqueia a atualização se a sincronização falhar
+        }
       } else {
         const productData: Product = {
           ...formData,
           price: priceNumber,
           active: true,
         };
-        const teste =   await createProduct(productData);
-        console.log('teste', teste);
+        const productId = await createProduct(productData);
+        console.log("[PRODUCTS] Produto criado localmente com ID:", productId);
+        
+        // Sincronizar produto criado com o servidor (não-bloqueante)
+        try {
+          const createdProduct = await getProduct(productId);
+          console.log("[PRODUCTS] Produto recuperado para sincronização:", createdProduct);
+          // Usar catch para não bloquear a UI
+          syncProduct(createdProduct).catch((syncError) => {
+            console.error("[PRODUCTS] ❌ Erro ao sincronizar produto:", syncError);
+            // Não mostra erro ao usuário para não interromper o fluxo
+            // O produto foi criado localmente e será sincronizado na próxima vez
+          });
+        } catch (syncError) {
+          console.error("[PRODUCTS] ❌ Erro ao buscar produto para sincronização:", syncError);
+          // Continua normalmente mesmo se a sincronização falhar
+        }
       }
       setFormData({ code: "", name: "", price: "", description: "" });
       setEditing(null);

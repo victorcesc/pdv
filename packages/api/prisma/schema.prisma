@@ -1,0 +1,283 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUÁRIO/EMPRESA (Unificado)
+// ============================================
+
+model User {
+  id       Int     @id @default(autoincrement())
+  login    String  @unique // Login único para autenticação
+  email    String? // Email opcional apenas para contato
+  name     String
+  password String // Hash da senha (bcrypt)
+
+  // Dados da Empresa (unificados)
+  cnpj             String  @unique
+  razaoSocial      String  @map("razao_social")
+  nomeFantasia     String? @map("nome_fantasia")
+  ie               String? // Inscrição Estadual
+  uf               String  @db.Char(2)
+  endereco         String?
+  certificadoRef   String? @map("certificado_ref") // Referência ao certificado
+  regimeTributario String  @default("simples_nacional") @map("regime_tributario") // simples_nacional, regime_normal
+  aliquotas        Json? // Alíquotas/faixas em JSON
+  ativo            Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  registrationKey RegistrationKey? // Chave de registro usada por este usuário (1:1)
+  nfces           Nfce[]
+  numeracoes      Numeracao[]
+  products        Product[] // Produtos do PDV
+  customers       Customer[] // Clientes do PDV
+  sales           Sale[] // Vendas do PDV
+
+  @@map("users")
+}
+
+model RegistrationKey {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique // UUID da chave
+  used      Boolean   @default(false)
+  usedAt    DateTime? @map("used_at")
+  usedBy    Int?      @unique @map("used_by") // ID do usuário que usou (único - 1:1)
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime? @map("expires_at") // Opcional: chave com expiração
+
+  // Relacionamento com usuário que usou a chave
+  user User? @relation(fields: [usedBy], references: [id])
+
+  @@map("registration_keys")
+}
+
+// ============================================
+// NOTAS FISCAIS
+// ============================================
+
+model Nfce {
+  id        Int     @id @default(autoincrement())
+  userId    Int     @map("user_id") // Agora referencia users.id diretamente
+  chave     String  @unique // Chave de acesso da NFC-e
+  numero    Int
+  serie     Int     @default(1)
+  status    String // autorizada, cancelada, rejeitada, etc.
+  protocolo String? // Protocolo de autorização da SEFAZ
+
+  // URLs dos XMLs no S3 (ao invés de armazenar XMLs no banco)
+  xmlEnviadoUrl String? @map("xml_enviado_url") // URL do XML enviado no S3
+  xmlRetornoUrl String? @map("xml_retorno_url") // URL do XML retornado no S3
+
+  valorTotal Decimal  @map("valor_total") @db.Decimal(10, 2)
+  ambiente   String   @default("homologacao") // homologacao, producao
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itens   NfceItem[]
+  eventos NfceEvento[]
+
+  // Índices para performance
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("nfces")
+}
+
+model NfceItem {
+  id             Int      @id @default(autoincrement())
+  nfceId         Int      @map("nfce_id")
+  numeroItem     Int      @map("numero_item")
+  descricao      String
+  ncm            String?  @db.Char(8)
+  cfop           String?  @db.Char(4)
+  quantidade     Decimal  @db.Decimal(10, 3)
+  valorUnitario  Decimal  @map("valor_unitario") @db.Decimal(10, 2)
+  valorTotal     Decimal  @map("valor_total") @db.Decimal(10, 2)
+  // Campos de impostos
+  icmsBase       Decimal? @map("icms_base") @db.Decimal(10, 2)
+  icmsAliquota   Decimal? @map("icms_aliquota") @db.Decimal(5, 2)
+  icmsValor      Decimal? @map("icms_valor") @db.Decimal(10, 2)
+  pisBase        Decimal? @map("pis_base") @db.Decimal(10, 2)
+  pisAliquota    Decimal? @map("pis_aliquota") @db.Decimal(5, 2)
+  pisValor       Decimal? @map("pis_valor") @db.Decimal(10, 2)
+  cofinsBase     Decimal? @map("cofins_base") @db.Decimal(10, 2)
+  cofinsAliquota Decimal? @map("cofins_aliquota") @db.Decimal(5, 2)
+  cofinsValor    Decimal? @map("cofins_valor") @db.Decimal(10, 2)
+
+  // Relacionamentos
+  nfce Nfce @relation(fields: [nfceId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([nfceId])
+  @@map("nfce_itens")
+}
+
+model NfceEvento {
+  id        Int    @id @default(autoincrement())
+  nfceId    Int    @map("nfce_id")
+  tipo      String // cancelamento, cce (carta de correção)
+  sequencia Int    @default(1)
+
+  // URL do XML do evento no S3 (ao invés de armazenar XML no banco)
+  xmlEventoUrl String? @map("xml_evento_url") // URL do XML do evento no S3
+
+  protocolo String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  nfce Nfce @relation(fields: [nfceId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([nfceId])
+  @@index([tipo])
+  @@map("nfce_eventos")
+}
+
+// ============================================
+// NUMERAÇÃO (CONTROLE DE NÚMEROS)
+// ============================================
+
+model Numeracao {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id") // Agora referencia users.id diretamente
+  serie        Int      @default(1)
+  ultimoNumero Int      @default(0) @map("ultimo_numero")
+  ano          Int
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serie, ano])
+  @@index([userId])
+  @@map("numeracoes")
+}
+
+// ============================================
+// DADOS DO PDV (Sincronização Local ↔ Remoto)
+// ============================================
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id") // Agora referencia users.id diretamente
+  code        String // Código de barras ou código interno
+  name        String
+  price       Decimal  @db.Decimal(10, 2)
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saleItems SaleItem[]
+
+  // Índices para performance
+  @@unique([userId, code])
+  @@index([userId])
+  @@index([userId, active])
+  @@index([code]) // Para busca rápida por código
+  @@map("products")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id") // Agora referencia users.id diretamente
+  name      String
+  document  String? // CPF/CNPJ
+  phone     String?
+  email     String?
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sales Sale[]
+
+  // Índices para performance
+  @@index([userId])
+  @@index([userId, active])
+  @@index([document]) // Para busca rápida por CPF/CNPJ
+  @@map("customers")
+}
+
+model Sale {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id") // Agora referencia users.id diretamente
+  customerId      Int?     @map("customer_id")
+  saleDate        DateTime @default(now()) @map("sale_date")
+  total           Decimal  @db.Decimal(10, 2)
+  paymentMethod   String   @map("payment_method")
+  isCredit        Boolean  @default(false) @map("is_credit")
+  generateInvoice Boolean  @default(true) @map("generate_invoice")
+  status          String   @default("completed")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    SaleItem[]
+  payments Payment[]
+
+  // Índices para performance
+  @@index([userId])
+  @@index([userId, saleDate])
+  @@index([userId, status])
+  @@index([userId, isCredit])
+  @@index([customerId])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int     @map("sale_id")
+  productId Int     @map("product_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  // Relacionamentos
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  // Índices para performance
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  saleId        Int      @map("sale_id")
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentDate   DateTime @default(now()) @map("payment_date")
+  paymentMethod String   @map("payment_method")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relacionamentos
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  // Índices para performance
+  @@index([saleId])
+  @@index([paymentDate])
+  @@map("payments")
+}

@@ -35,6 +35,7 @@
   },
   "home": {
     "title": "Welcome to PDV",
+    "welcome": "Welcome",
     "subtitle": "Sales System",
     "newSale": "New Sale",
     "products": "Products",
@@ -171,7 +172,10 @@
     "passwordTooShort": "Password must be at least 6 characters",
     "submit": "Create Account",
     "loading": "Creating account...",
-    "alreadyHaveAccount": "Already have an account? Sign in"
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "successTitle": "Account created successfully!",
+    "successMessage": "Your account has been created successfully. You can now log in and start using the system.",
+    "successButton": "Got it, thanks!"
   }
 }
 
