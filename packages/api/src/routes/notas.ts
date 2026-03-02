@@ -20,7 +20,7 @@ notasRouter.get("/", (_req, res) => {
  */
 notasRouter.post("/process", userMiddleware, async (req: Request, res: Response) => {
   console.log("[INVOICES] POST /invoices/process - Requisição recebida");
-  console.log("[INVOICES] User ID:", req.userId, "| Empresa ID:", req.empresaId);
+  console.log("[INVOICES] User ID:", req.userId);
 
   try {
     if (!req.userId) {

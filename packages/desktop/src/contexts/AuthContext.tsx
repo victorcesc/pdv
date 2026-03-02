@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // SEMPRE limpar dados locais no login para garantir isolamento entre usuários
     // O banco local funciona como cache offline do usuário logado
-    // O servidor é a fonte de verdade e filtra por empresaId
+    // O servidor é a fonte de verdade e filtra por userId
     console.log("[AUTH] Limpando dados locais para garantir isolamento do usuário...");
       try {
         await invoke("clear_local_data");

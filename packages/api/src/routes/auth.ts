@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { AppError } from "../middleware/error.js";
+import { userMiddleware } from "../middleware/user.js";
 import { GenerateRegistrationKeyUseCase } from "../use-cases/auth/generate-registration-key.use-case.js";
 import { RegisterUseCase } from "../use-cases/auth/register.use-case.js";
 import { LoginUseCase } from "../use-cases/auth/login.use-case.js";
+import { db } from "../db/client.js";
 
 export const authRouter = Router();
 
@@ -46,6 +48,9 @@ authRouter.post("/register", async (req: Request, res: Response) => {
     login: req.body.login,
     email: req.body.email,
     name: req.body.name,
+    cnpj: req.body.cnpj,
+    razaoSocial: req.body.razaoSocial,
+    uf: req.body.uf,
     registrationKey: req.body.registrationKey ? `${req.body.registrationKey.substring(0, 8)}...` : "não informado",
   });
 
@@ -57,6 +62,13 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       password: req.body.password,
       name: req.body.name,
       registrationKey: req.body.registrationKey,
+      // Dados da empresa
+      cnpj: req.body.cnpj,
+      razaoSocial: req.body.razaoSocial,
+      uf: req.body.uf,
+      nomeFantasia: req.body.nomeFantasia,
+      ie: req.body.ie,
+      endereco: req.body.endereco,
     });
 
     console.log("[AUTH] ✅ Usuário registrado com sucesso! ID:", result.user.id);
@@ -117,6 +129,62 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         message: "Erro ao fazer login",
         error: error instanceof Error ? error.message : String(error),
         stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+});
+
+/**
+ * GET /auth/me
+ * Retorna os dados do usuário autenticado
+ * Requer autenticação (Bearer token)
+ */
+authRouter.get("/me", userMiddleware, async (req: Request, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Usuário não autenticado",
+        code: "UNAUTHENTICATED",
+      });
+    }
+
+    console.log("[AUTH] GET /auth/me - Requisição recebida");
+    console.log("[AUTH] User ID:", req.userId);
+
+    const user = await db.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        id: true,
+        login: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuário não encontrado",
+        code: "USER_NOT_FOUND",
+      });
+    }
+
+    console.log("[AUTH] ✅ Dados do usuário retornados:", user.id);
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("[AUTH] ❌ Erro ao buscar dados do usuário:", error);
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        code: error.code,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: "Erro ao buscar dados do usuário",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }

@@ -11,6 +11,13 @@ export interface RegisterCredentials {
   password: string;
   name: string;
   registrationKey: string;
+  // Dados da empresa (obrigatórios)
+  cnpj: string;
+  razaoSocial: string;
+  uf: string;
+  nomeFantasia?: string;
+  ie?: string;
+  endereco?: string;
 }
 
 export interface AuthResponse {

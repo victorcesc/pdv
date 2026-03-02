@@ -45,37 +45,37 @@ export interface InitialDataOutput {
 }
 
 export class GetInitialDataUseCase {
-  async execute(empresaId: number): Promise<InitialDataOutput> {
-    console.log("[USE-CASE] Buscando dados iniciais para empresa ID:", empresaId);
+  async execute(userId: number): Promise<InitialDataOutput> {
+    console.log("[USE-CASE] Buscando dados iniciais para usuário ID:", userId);
 
-    // Verificar se a empresa existe
-    const empresa = await db.empresa.findUnique({
-      where: { id: empresaId },
+    // Verificar se o usuário existe
+    const user = await db.user.findUnique({
+      where: { id: userId },
     });
 
-    if (!empresa) {
-      console.log("[USE-CASE] ❌ Empresa não encontrada");
-      throw new AppError("Empresa não encontrada", 404, "EMPRESA_NOT_FOUND");
+    if (!user) {
+      console.log("[USE-CASE] ❌ Usuário não encontrado");
+      throw new AppError("Usuário não encontrado", 404, "USER_NOT_FOUND");
     }
 
     // Buscar produtos
     console.log("[USE-CASE] Buscando produtos...");
     const products = await db.product.findMany({
-      where: { empresaId, active: true },
+      where: { userId, active: true },
       orderBy: { name: "asc" },
     });
 
     // Buscar clientes
     console.log("[USE-CASE] Buscando clientes...");
     const customers = await db.customer.findMany({
-      where: { empresaId, active: true },
+      where: { userId, active: true },
       orderBy: { name: "asc" },
     });
 
     // Buscar vendas com itens e pagamentos
     console.log("[USE-CASE] Buscando vendas...");
     const sales = await db.sale.findMany({
-      where: { empresaId },
+      where: { userId },
       include: {
         items: true,
         payments: true,

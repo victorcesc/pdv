@@ -364,10 +364,10 @@ export async function syncInitialData(): Promise<SyncResponse> {
 
     // Nota: Não fazemos upload no login porque o banco local foi limpo
     // Dados criados localmente devem ser sincronizados imediatamente quando criados
-    // O servidor é a fonte de verdade e filtra por empresaId
+    // O servidor é a fonte de verdade e filtra por userId
     
     // Buscar dados do servidor (download)
-    // Os dados já vêm filtrados por empresaId do servidor
+    // Os dados já vêm filtrados por userId do servidor
     console.log("[SYNC] Buscando dados do servidor...");
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/sync/initial`,

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { register } from "../services/auth";
 import { t } from "../i18n";
 import Modal from "../components/Modal";
+import { validateCNPJ, formatCNPJ } from "../utils/validations";
 import "../styles/components.css";
 
 export default function Register() {
@@ -12,6 +13,15 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [registrationKey, setRegistrationKey] = useState("");
+  
+  // Dados da empresa
+  const [cnpj, setCnpj] = useState("");
+  const [razaoSocial, setRazaoSocial] = useState("");
+  const [nomeFantasia, setNomeFantasia] = useState("");
+  const [uf, setUf] = useState("");
+  const [ie, setIe] = useState("");
+  const [endereco, setEndereco] = useState("");
+  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -52,6 +62,28 @@ export default function Register() {
       return;
     }
 
+    // Validações dos dados da empresa
+    if (!cnpj.trim()) {
+      setError("CNPJ é obrigatório");
+      return;
+    }
+
+    const cleanCnpj = cnpj.replace(/\D/g, "");
+    if (!validateCNPJ(cleanCnpj)) {
+      setError("CNPJ inválido");
+      return;
+    }
+
+    if (!razaoSocial.trim()) {
+      setError("Razão Social é obrigatória");
+      return;
+    }
+
+    if (!uf.trim() || uf.length !== 2) {
+      setError("UF é obrigatória (2 caracteres)");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -61,6 +93,13 @@ export default function Register() {
         email: email || undefined,
         password,
         registrationKey: registrationKey.trim(),
+        // Dados da empresa
+        cnpj: cleanCnpj,
+        razaoSocial: razaoSocial.trim(),
+        uf: uf.trim().toUpperCase(),
+        nomeFantasia: nomeFantasia.trim() || undefined,
+        ie: ie.trim() || undefined,
+        endereco: endereco.trim() || undefined,
       });
       // Mostrar modal de sucesso ao invés de redirecionar imediatamente
       setShowSuccessModal(true);
@@ -189,6 +228,124 @@ export default function Register() {
             <small className="form-text-hint">
               {t("register.keyHint") || "Chave única fornecida pelo desenvolvedor"}
             </small>
+          </div>
+
+          <hr style={{ margin: "1.5rem 0", border: "none", borderTop: "1px solid #ddd" }} />
+          <h3 style={{ marginBottom: "1rem", fontSize: "1.1rem", color: "#333" }}>
+            Dados da Empresa
+          </h3>
+
+          <div className="form-group">
+            <label className="form-label">
+              CNPJ *
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={cnpj}
+              onChange={(e) => {
+                const formatted = formatCNPJ(e.target.value);
+                setCnpj(formatted);
+                if (error && error.includes("CNPJ")) {
+                  setError(null);
+                }
+              }}
+              required
+              disabled={loading}
+              placeholder="00.000.000/0000-00"
+              maxLength={18}
+            />
+            <small className="form-text-hint">
+              CNPJ da empresa (14 dígitos)
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Razão Social *
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={razaoSocial}
+              onChange={(e) => {
+                setRazaoSocial(e.target.value);
+                if (error && error.includes("Razão Social")) {
+                  setError(null);
+                }
+              }}
+              required
+              disabled={loading}
+              placeholder="Nome oficial da empresa"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Nome Fantasia
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={nomeFantasia}
+              onChange={(e) => setNomeFantasia(e.target.value)}
+              disabled={loading}
+              placeholder="Nome comercial (opcional)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              UF (Estado) *
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={uf}
+              onChange={(e) => {
+                const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").substring(0, 2);
+                setUf(value);
+                if (error && error.includes("UF")) {
+                  setError(null);
+                }
+              }}
+              required
+              disabled={loading}
+              placeholder="SP"
+              maxLength={2}
+              style={{ textTransform: "uppercase" }}
+            />
+            <small className="form-text-hint">
+              Sigla do estado (2 letras)
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Inscrição Estadual (IE)
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              value={ie}
+              onChange={(e) => setIe(e.target.value)}
+              disabled={loading}
+              placeholder="Inscrição Estadual (opcional)"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              Endereço
+            </label>
+            <textarea
+              className="form-control"
+              value={endereco}
+              onChange={(e) => setEndereco(e.target.value)}
+              disabled={loading}
+              placeholder="Endereço completo (opcional)"
+              rows={2}
+            />
           </div>
 
           <button

@@ -8,7 +8,6 @@ declare global {
   namespace Express {
     interface Request {
       userId?: number;
-      empresaId?: number;
     }
   }
 }
@@ -70,7 +69,6 @@ export async function userMiddleware(
     // Verificar se o usuário existe
     const user = await db.user.findUnique({
       where: { id: userId },
-      include: { empresa: true },
     });
 
     if (!user) {
@@ -79,17 +77,10 @@ export async function userMiddleware(
       return;
     }
 
-    // Adicionar userId e empresaId ao request
+    // Adicionar userId ao request
     req.userId = user.id;
-    if (user.empresa?.id) {
-      req.empresaId = user.empresa.id;
-    }
 
-    log("[USER-MIDDLEWARE] ✅ Usuário autenticado - ID:", user.id, "| Login:", user.login, "| Empresa ID:", req.empresaId);
-    
-    if (!req.empresaId) {
-      log("[USER-MIDDLEWARE] ⚠️  Usuário não tem empresa cadastrada");
-    }
+    log("[USER-MIDDLEWARE] ✅ Usuário autenticado - ID:", user.id, "| Login:", user.login, "| CNPJ:", user.cnpj);
     
     next();
   } catch (error) {

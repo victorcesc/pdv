@@ -9,6 +9,13 @@ export interface RegisterInput {
   password: string;
   name: string;
   registrationKey: string;
+  // Dados da empresa (obrigatórios)
+  cnpj: string;
+  razaoSocial: string;
+  uf: string;
+  nomeFantasia?: string;
+  ie?: string;
+  endereco?: string;
 }
 
 export interface RegisterOutput {
@@ -23,14 +30,14 @@ export interface RegisterOutput {
 
 export class RegisterUseCase {
   async execute(input: RegisterInput): Promise<RegisterOutput> {
-    const { login, email, password, name, registrationKey } = input;
+    const { login, email, password, name, registrationKey, cnpj, razaoSocial, uf, nomeFantasia, ie, endereco } = input;
 
     // Validação básica
     console.log("[USE-CASE] Validando campos obrigatórios...");
-    if (!login || !password || !name || !registrationKey) {
+    if (!login || !password || !name || !registrationKey || !cnpj || !razaoSocial || !uf) {
       console.log("[USE-CASE] ❌ Validação falhou: campos obrigatórios ausentes");
       throw new AppError(
-        "Todos os campos são obrigatórios: login, password, name, registrationKey",
+        "Campos obrigatórios: login, password, name, registrationKey, cnpj, razaoSocial, uf",
         400,
         "VALIDATION_ERROR"
       );
@@ -48,6 +55,18 @@ export class RegisterUseCase {
       throw new AppError("Login já está em uso", 409, "LOGIN_ALREADY_EXISTS");
     }
     console.log("[USE-CASE] ✅ Login disponível");
+
+    // Verificar se o CNPJ já está em uso
+    console.log("[USE-CASE] Verificando se CNPJ já está em uso:", cnpj);
+    const existingCnpj = await db.user.findUnique({
+      where: { cnpj },
+    });
+
+    if (existingCnpj) {
+      console.log("[USE-CASE] ❌ CNPJ já está em uso");
+      throw new AppError("CNPJ já está cadastrado", 409, "CNPJ_ALREADY_EXISTS");
+    }
+    console.log("[USE-CASE] ✅ CNPJ disponível");
 
     // Verificar se a chave de registro existe e não foi usada
     console.log("[USE-CASE] Buscando chave de registro no banco...");
@@ -84,7 +103,7 @@ export class RegisterUseCase {
     // Criar usuário e marcar chave como usada em uma transação
     console.log("[USE-CASE] Iniciando transação para criar usuário e marcar chave como usada...");
     const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Criar o usuário
+      // Criar o usuário com dados da empresa
       console.log("[USE-CASE] Criando usuário no banco...");
       const user = await tx.user.create({
         data: {
@@ -92,6 +111,13 @@ export class RegisterUseCase {
           email: email || null,
           name,
           password: hashedPassword,
+          // Dados da empresa
+          cnpj,
+          razaoSocial,
+          uf,
+          nomeFantasia: nomeFantasia || null,
+          ie: ie || null,
+          endereco: endereco || null,
         },
       });
       console.log("[USE-CASE] ✅ Usuário criado com sucesso! ID:", user.id, "| Login:", user.login);

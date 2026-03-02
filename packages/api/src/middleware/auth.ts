@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = [
 // Rotas que usam Bearer token (userMiddleware) e não precisam de API_KEY
 const USER_TOKEN_ROUTES = [
   "/sync/",
+  "/auth/me",
 ];
 
 export function authMiddleware(req: Request, _res: Response, next: NextFunction): void {
