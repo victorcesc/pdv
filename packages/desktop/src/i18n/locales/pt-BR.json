@@ -53,6 +53,7 @@
     "generateInvoice": "Gerar Nota Fiscal",
     "paymentMethod": "Forma de Pagamento:",
     "customer": "Cliente",
+    "customerOptional": "Cliente (opcional — venda sem identificação também gera nota fiscal)",
     "products": "Produtos",
     "addToCart": "Adicione produtos ao carrinho",
     "saleSuccess": "Venda realizada com sucesso!",

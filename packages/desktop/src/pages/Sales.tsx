@@ -172,6 +172,7 @@ export default function Sales() {
         </div>
         <div className="mb-2">
           <h3 className="section-title">{t("sales.customer")}</h3>
+          <p className="text-muted small mb-1">{t("sales.customerOptional")}</p>
           <CustomerSearch
             onSelectCustomer={handleSelectCustomer}
             selectedCustomer={selectedCustomer}

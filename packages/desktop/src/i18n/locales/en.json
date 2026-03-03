@@ -53,6 +53,7 @@
     "generateInvoice": "Generate Invoice",
     "paymentMethod": "Payment Method:",
     "customer": "Customer",
+    "customerOptional": "Customer (optional — anonymous sale still generates invoice)",
     "products": "Products",
     "addToCart": "Add products to cart",
     "saleSuccess": "Sale completed successfully!",
